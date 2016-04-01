@@ -38,7 +38,7 @@ public class Application extends SpringBootServletInitializer {
 
     @Override
     protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
-        return builder.sources(Application.class);
+        return builder.sources(Application.class); // 以 war 包形式发布时需要此设置
     }
 
     public static void main(String[] args) throws Exception {

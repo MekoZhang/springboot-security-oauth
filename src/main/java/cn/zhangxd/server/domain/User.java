@@ -1,13 +1,13 @@
 package cn.zhangxd.server.domain;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.Serializable;
+import java.util.*;
 
 /**
  * 用户Domain
  * Created by zhangxd on 16/3/17.
  */
-public class User {
+public class User implements Serializable {
 
     private Integer id;
 
