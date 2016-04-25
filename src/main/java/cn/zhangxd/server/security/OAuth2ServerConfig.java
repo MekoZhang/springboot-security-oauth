@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
@@ -20,7 +19,7 @@ import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.redis.RedisTokenStore;
 import org.springframework.security.oauth2.provider.token.store.redis.RedisTokenStoreSerializationStrategy;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
 /**
  * OAuth2.0 Server配置
@@ -36,11 +35,12 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @Configuration
 public class OAuth2ServerConfig {
 
-    private static final String RESOURCE_ID = "rest_service";
+    private static final String RESOURCE_ID_API = "api_service";
+    private static final String RESOURCE_ID_ADMIN = "admin_service";
 
     @Configuration
     @EnableResourceServer
-    protected static class ResourceServerConfig extends ResourceServerConfigurerAdapter {
+    protected static class ApiResourceServerConfig extends ResourceServerConfigurerAdapter {
 
         @Autowired
         private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
@@ -51,36 +51,66 @@ public class OAuth2ServerConfig {
         @Override
         public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
             resources
-                    .resourceId(RESOURCE_ID);
+                    .resourceId(RESOURCE_ID_API);
         }
 
         @Override
         public void configure(HttpSecurity http) throws Exception {
             http
-                    .exceptionHandling()
-                    .authenticationEntryPoint(customAuthenticationEntryPoint)
-                    .and()
-                    .formLogin()
-                    .loginPage("/#/access/signin")
-                    .defaultSuccessUrl("/#/app/dashboard-v1")
-                    .and()
-                    .logout()
-                    .logoutUrl("/oauth/logout")
-                    .logoutSuccessHandler(customLogoutSuccessHandler)
-                    .and()
-                    .csrf()
-                    .requireCsrfProtectionMatcher(new AntPathRequestMatcher("/oauth/authorize"))
-                    .disable()
-                    .headers()
-                    .frameOptions().disable()
-                    .and()
-                    .sessionManagement()
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                    .and()
                     .authorizeRequests()
-                    .antMatchers("/admin/**").hasRole("ADMIN")
-                    .antMatchers("/api/**").hasRole("USER")
                     .anyRequest().authenticated()
+            ;
+        }
+    }
+
+    @Configuration
+    @EnableResourceServer
+    protected static class AdminResourceServerConfig extends ResourceServerConfigurerAdapter {
+
+        @Autowired
+        private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
+        @Autowired
+        private CustomLogoutSuccessHandler customLogoutSuccessHandler;
+
+        @Override
+        public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
+            resources
+                    .resourceId(RESOURCE_ID_API);
+        }
+
+        @Override
+        public void configure(HttpSecurity http) throws Exception {
+            http.antMatcher("/**")
+                    .authorizeRequests()
+                    .antMatchers("/", "/login**").permitAll()
+                    .anyRequest().authenticated()
+                    .and().exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/"))
+                    .and().logout().logoutSuccessUrl("/").permitAll()
+//                    .exceptionHandling()
+//                    .authenticationEntryPoint(customAuthenticationEntryPoint)
+//                    .and()
+//                    .formLogin()
+//                    .loginPage("/#/access/signin")
+//                    .defaultSuccessUrl("/#/app/dashboard-v1")
+//                    .and()
+//                    .logout()
+//                    .logoutUrl("/oauth/logout")
+//                    .logoutSuccessHandler(customLogoutSuccessHandler)
+//                    .and()
+//                    .csrf()
+//                    .requireCsrfProtectionMatcher(new AntPathRequestMatcher("/oauth/authorize"))
+//                    .disable()
+//                    .headers()
+//                    .frameOptions().disable()
+//                    .and()
+//                    .sessionManagement()
+//                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+//                    .and()
+//                    .authorizeRequests()
+//                    .anyRequest().permitAll()
+//                    .antMatchers("/debug/**", "/api-docs/**").permitAll()
+//                    .anyRequest().authenticated()
             ;
         }
     }
@@ -117,7 +147,7 @@ public class OAuth2ServerConfig {
                     .authorizedGrantTypes("password", "refresh_token")
                     .authorities("ADMIN")
                     .scopes("admin", "read", "write")
-                    .resourceIds(RESOURCE_ID)
+                    .resourceIds(RESOURCE_ID_ADMIN)
                     .secret("12345")
                     .accessTokenValiditySeconds(3600) // 1 hour
                     .refreshTokenValiditySeconds(2592000) // 30 days
@@ -127,21 +157,12 @@ public class OAuth2ServerConfig {
                     .authorizedGrantTypes("password", "refresh_token")
                     .authorities("USER")
                     .scopes("api", "read", "write")
-                    .resourceIds(RESOURCE_ID)
+                    .resourceIds(RESOURCE_ID_API)
                     .secret("12345")
                     .accessTokenValiditySeconds(3600) // 1 hour
                     .refreshTokenValiditySeconds(2592000) // 30 days
             ;
         }
-
-//        @Override
-//        public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
-//            // 在令牌端点上定义了安全约束
-//            security
-//                    .tokenKeyAccess("permitAll()")
-//                    .checkTokenAccess("isAuthenticated()")
-//            ;
-//        }
 
         @Autowired
         private CustomUserDetailsService customUserDetailsService;

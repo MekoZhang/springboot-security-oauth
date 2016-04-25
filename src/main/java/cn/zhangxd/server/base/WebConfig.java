@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.multipart.MultipartResolver;
+import org.springframework.web.multipart.commons.CommonsMultipartResolver;
 import org.springframework.web.servlet.config.annotation.*;
 
 /**
@@ -33,8 +35,8 @@ public class WebConfig extends WebMvcConfigurerAdapter {
         // 配置日志拦截器拦截请求路径
         registry
                 .addInterceptor(logInterceptor())
-                .addPathPatterns("/api/**")
-                .addPathPatterns("/admin/**");
+                .addPathPatterns("/**")
+        ;
     }
 
     @Bean
@@ -61,17 +63,26 @@ public class WebConfig extends WebMvcConfigurerAdapter {
         configurer.enable();
     }
 
-    @Override
-    public void addViewControllers(final ViewControllerRegistry registry) {
-        super.addViewControllers(registry);
-        registry.addViewController("/").setViewName("forward:/index");
-        registry.addViewController("/index");
-        registry.addViewController("/login");
-    }
+//    @Override
+//    public void addViewControllers(final ViewControllerRegistry registry) {
+//        super.addViewControllers(registry);
+//        registry.addViewController("/").setViewName("forward:/index");
+//        registry.addViewController("/index");
+//        registry.addViewController("/login");
+//    }
 
-    @Override
-    public void addResourceHandlers(final ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/resources/**").addResourceLocations("/resources/");
+//    @Override
+//    public void addResourceHandlers(final ResourceHandlerRegistry registry) {
+//        // 开放静态资源 eg: http://localhost:8090/resources/application.yml
+//        registry.addResourceHandler("/resources/**").addResourceLocations("classpath:/");
+//    }
+
+    @Bean
+    public MultipartResolver getMultipartResolver() {
+        CommonsMultipartResolver resolver = new CommonsMultipartResolver();
+        resolver.setMaxUploadSize(5 * 1024 * 1024); // 5MB
+
+        return resolver;
     }
 
 //    @Bean
